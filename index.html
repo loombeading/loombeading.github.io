@@ -1,0 +1,607 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Loom</title>
+<meta name="description" content="朝、布が伸びている。夜のあいだに織られた段を、Loom はあとから一段ずつ読み返せる記録として残します。">
+<link rel="canonical" href="https://loombeading.github.io/">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://loombeading.github.io/">
+<meta property="og:title" content="Loom — Beads, not strings.">
+<meta property="og:description" content="朝、布が伸びている。夜のあいだに織られた段を、Loom はあとから一段ずつ読み返せる記録として残します。">
+<meta property="og:image" content="https://loombeading.github.io/og.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Noto+Sans+JP:wght@400;500;700&family=JetBrains+Mono:wght@400;500&family=Shippori+Mincho:wght@400;500&display=swap">
+<style>
+  :root {
+    color-scheme: dark;
+    --ground:#0F1626; --surface:#17203A; --rule:#263354; --thread:#3C6494;
+    --text:#E9E3D5; --dim:#9A9382; --soft:#8FAECB; --accent:#D2564A; --bead:#C9D9E8;
+    --f-sans:"Inter","Noto Sans JP",system-ui,sans-serif;
+    --f-mono:"JetBrains Mono",ui-monospace,Menlo,monospace;
+    --f-serif:"Shippori Mincho","Hiragino Mincho ProN",serif;
+  }
+  @media (prefers-color-scheme: light) {
+    :root:not([data-theme="dark"]) {
+      color-scheme: light;
+      --ground:#EDE9DE; --surface:#E3DED0; --rule:#CAC3B0; --thread:#8098B4;
+      --text:#16203A; --dim:#6B6455; --soft:#35618F; --accent:#B23A30; --bead:#2E4A6B;
+    }
+  }
+  :root[data-theme="light"] {
+    color-scheme: light;
+    --ground:#EDE9DE; --surface:#E3DED0; --rule:#CAC3B0; --thread:#8098B4;
+    --text:#16203A; --dim:#6B6455; --soft:#35618F; --accent:#B23A30; --bead:#2E4A6B;
+  }
+  * { box-sizing:border-box; }
+  html, body { margin:0; }
+  body {
+    background-color:var(--ground); color:var(--text);
+    background-image:radial-gradient(color-mix(in srgb, var(--thread) 55%, transparent) .6px, transparent .75px);
+    background-size:5px 5px;
+    font-family:var(--f-sans); font-size:15px; line-height:1.75;
+    -webkit-font-smoothing:antialiased; overflow-x:hidden;
+    word-break:auto-phrase;  /* 和文を文節で改行する（BudouX と同じ考え方）。未対応のブラウザは通常の改行に戻る */
+  }
+  a { color:inherit; text-underline-offset:.3em; }
+  .wrap { max-width:74rem; margin:0 auto; padding:0 16px; }
+  @media (min-width:48rem){ .wrap{ padding:0 2rem; } }
+  .mono { font-family:var(--f-mono); }
+
+  nav { border-bottom:1px solid var(--rule); background:var(--ground); }
+  nav .wrap { display:flex; align-items:center; gap:1.6rem; height:52px; font-size:13px; }
+  nav .brand { font-weight:600; display:flex; align-items:center; gap:.5rem; font-size:14px; }
+  nav .brand i { width:12px; height:12px; background:radial-gradient(circle, var(--bead) 1.3px, transparent 1.6px) 0 0/4px 4px; }
+  nav a { text-decoration:none; color:var(--dim); }
+  nav a:hover { color:var(--text); }
+  nav .sp { flex:1; }
+  @media (max-width:40rem){ nav .hide-s{ display:none; } }
+
+  /* panel: 窓の装飾は持たない。細い罫と小さな見出しだけ */
+  .panel { background:var(--surface); border:1px solid var(--rule); padding:16px 18px 18px; min-width:0; }
+  .panel.quiet { background:transparent; }
+  .cap { font-family:var(--f-mono); font-size:11px; color:var(--soft); letter-spacing:.06em;
+    display:flex; justify-content:space-between; margin-bottom:10px; }
+
+  .news { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px; padding-top:22px; }
+  .news b { display:block; font-weight:500; font-size:15px; margin:.1rem 0 .2rem; }
+  .news p { margin:0; font-size:13px; color:var(--dim); }
+  @media (max-width:48rem){ .news{ grid-template-columns:minmax(0,1fr); } }
+
+  .hero { position:relative; min-height:min(86vh,740px); display:grid; grid-template-columns:minmax(0,1fr); align-items:center; padding:48px 0; }
+  #halftone { position:absolute; inset:0; width:100%; height:100%; z-index:0; }
+  .hero .copy { position:relative; z-index:1; width:100%; }
+  .b64 { font-family:var(--f-mono); font-size:11px; word-break:break-all; color:var(--dim); max-width:42rem; }
+  .b64::before { content:"[b-64] "; color:var(--soft); }
+  .leader { font-family:var(--f-mono); font-size:14px; display:flex; gap:.5rem; margin:26px 0 10px; max-width:44rem; color:var(--soft); }
+  .leader .dots { flex:1; min-width:0; overflow:hidden; white-space:nowrap; color:var(--rule); }
+  .leader .dots::after { content:"........................................................................................................"; }
+  h1 { font-weight:500; font-size:clamp(2.6rem,8.4vw,6.8rem); line-height:.98; letter-spacing:-.045em; margin:0; max-width:10em; }
+  h1 small { display:block; font-size:.3em; font-weight:500; letter-spacing:.02em; margin-top:.7em; color:var(--soft); }
+  .hero .sub { max-width:34em; margin:18px 0 0; color:var(--dim); }
+  .ctas { display:flex; flex-wrap:wrap; gap:12px; margin-top:26px; }
+  .cta { font-size:14px; font-weight:500; text-decoration:none; border:1px solid var(--rule); padding:9px 16px; background:var(--surface); }
+  .cta.primary { background:var(--text); color:var(--ground); border-color:var(--text); }
+  /* 区切り: 布の図と同じ経糸と角丸の粒で、互い違いの二段を小さく織る */
+  .glyph { display:flex; justify-content:center; margin:40px 0; }
+  .glyph svg { display:block; width:40px; height:21px; opacity:.45; } /* 区切りは主張させない */
+  #weave-mark .w { stroke:var(--thread); stroke-width:1.1; opacity:.55; }
+  #weave-mark .b { fill:var(--bead); }
+
+  .desk { display:grid; grid-template-columns:1.2fr 1fr 1fr; gap:14px; padding:10px 0 60px; }
+  @media (max-width:60rem){ .desk{ grid-template-columns:repeat(2,minmax(0,1fr)); } .desk .tree{ grid-column:1/-1; } }
+  @media (max-width:40rem){ .desk{ grid-template-columns:minmax(0,1fr); } }
+  #weave { display:block; width:100%; height:190px; }
+  pre.txt { margin:0; font-family:var(--f-mono); font-size:12px; line-height:1.8; overflow-x:auto; color:var(--soft); }
+  pre.txt b { font-weight:400; color:var(--text); }
+  pre.txt .me { background:var(--accent); color:var(--text); padding:0 4px; }
+  pre.txt .dim { color:var(--dim); }
+  /* lineage: 狭い幅では説明を名前の下に回した図に切り替える（隠した側は読み上げにも出ない） */
+  .tree-n { display:none; }
+  /* はじめる: 長いコマンドは枠の中で折り返し、続きの行はぶら下げて 1 行の続きだと分かるようにする（写しても改行は入らない） */
+  pre.term { white-space:pre-wrap; word-break:normal; overflow-wrap:anywhere; }
+  pre.term .ln { display:block; padding-left:2ch; text-indent:-2ch; }
+  @media (max-width:40rem){ .tree-w{ display:none; } .tree-n{ display:block; } }
+  /* the same night: 隣の weave がいま打ち込んでいる段の出来事を薄く強調する */
+  pre.txt .ev { transition:background-color .8s; }
+  pre.txt .ev.on { background:color-mix(in srgb, var(--soft) 22%, transparent); }
+
+  section { padding:64px 0; }
+  .label { font-family:var(--f-mono); font-size:11px; letter-spacing:.08em; color:var(--soft); display:block; margin-bottom:14px; }
+  h2 { font-weight:500; font-size:clamp(1.9rem,5vw,3.6rem); line-height:1.08; letter-spacing:-.035em; margin:0 0 24px; max-width:16em; }
+  h3 { font-weight:500; font-size:16px; margin:0 0 6px; }
+  .panel p { margin:0; font-size:14px; color:var(--dim); }
+
+  .two { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px; }
+  .three { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:14px; margin-top:14px; }
+  @media (max-width:48rem){ .two, .three{ grid-template-columns:minmax(0,1fr); } }
+
+  .big { font-weight:500; font-size:clamp(3rem,11vw,9rem); line-height:.9; letter-spacing:-.05em; margin:0; }
+  .big + .big { margin-top:.05em; color:var(--soft); }
+  /* 0／1 は字面の中心を揃え（1 を 0 の中心へ寄せる）、network／file は字面の左端を揃える。値は Inter 500 の字形の実測（em） */
+  .big .d { display:inline-block; width:.88em; }
+  .big .d1 { margin-left:.0925em; }  /* 1 の字面中心を 0 の字面中心へ寄せ、目で見て .04em 左へ詰める */
+  .big .wn { margin-left:-.072em; } .big .wf { margin-left:-.102em; }  /* 語の左サイドベアリングと 1 のずらし分を相殺 */
+  .foot { font-family:var(--f-mono); font-size:12px; color:var(--dim); margin-top:14px; }
+
+  .cmp { margin-top:28px; }
+  .cmp pre { min-height:190px; }
+  .meta { border-top:1px solid var(--rule); margin-top:12px; padding-top:10px; font-size:13px; }
+  .ok { color:var(--soft); } .ng { color:var(--accent); }
+
+  /* 語彙: 一段が織られる夜の順に、文を縦に読ませる */
+  .verbs { max-width:46rem; border-top:1px solid var(--rule); }
+  .verbs > div { display:flex; align-items:baseline; justify-content:space-between; gap:1.5rem;
+    padding:14px 0 14px 22px; border-bottom:1px solid var(--rule); position:relative; }
+  .verbs .gl { order:1; font-size:16px; line-height:1.6; color:var(--text); }
+  .verbs .cmd { order:2; font-family:var(--f-mono); font-size:12px; color:var(--dim); white-space:nowrap; }
+  .verbs .cmd::before { content:"$ "; color:var(--thread); }
+  .verbs .gate::before { content:""; position:absolute; left:4px; top:50%; width:8px; height:8px; margin-top:-4px; background:var(--accent); }
+  @media (max-width:40rem){ .verbs > div{ flex-direction:column; gap:2px; } }
+  .coda { max-width:40em; margin:28px 0 0; color:var(--dim); font-size:14px; }
+
+  /* 布を読む: 文言版の散文。明朝体はこの区画だけ */
+  /* 布の図: 文言版の左列。散文を読み進める間、横に留まる。粒の角丸は E2 の例外 */
+  .reading { display:grid; grid-template-columns:108px minmax(0,34em); gap:clamp(1.5rem,4.5vw,3.2rem); align-items:start; }
+  .cloth { position:sticky; top:0; }
+  .cloth canvas { display:block; width:100%; }
+  /* 布の図の下端から、Bead がほどけて冒頭の網点へ広がる */
+  #spread { display:block; width:100%; height:clamp(160px,26vw,280px); }
+  @media (max-width:48rem){ .reading{ grid-template-columns:46px minmax(0,1fr); gap:1.1rem; } }
+  .read { max-width:34em; font-family:var(--f-serif); font-size:16px; line-height:2.1; }
+  .read p { margin:0 0 1.1em; }
+  .read .step { font-family:var(--f-serif); font-weight:500; font-size:1.25em; margin:2.2em 0 .8em; display:flex; gap:1rem; align-items:baseline; }
+  .read .step span { font-family:var(--f-mono); font-size:11px; color:var(--soft); letter-spacing:.06em; }
+  .read ruby rt { font-size:.5em; color:var(--dim); }
+
+  details { border-top:1px solid var(--rule); padding:14px 0; }
+  details:last-child { border-bottom:1px solid var(--rule); }
+  summary { cursor:pointer; font-size:15px; list-style:none; display:flex; justify-content:space-between; gap:1rem; }
+  summary::-webkit-details-marker { display:none; }
+  summary::after { content:"+"; font-family:var(--f-mono); color:var(--soft); }
+  details[open] summary::after { content:"−"; }
+  details p { margin:.6rem 0 0; font-size:14px; max-width:44em; color:var(--dim); }
+
+  footer { border-top:1px solid var(--rule); padding:22px 0 40px; font-size:12px; color:var(--dim); }
+  footer .wrap { display:flex; flex-wrap:wrap; gap:.6rem 2rem; justify-content:space-between; }
+  footer a { color:var(--soft); }
+  a:focus-visible, summary:focus-visible { outline:2px solid var(--accent); outline-offset:3px; }
+</style>
+</head>
+<body>
+<!-- 区切りの柄: 5 本の経糸に、粒を二段互い違いに置く（旧 ∵ ⩆ / ⩆ ∵ の置き換え） -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs><g id="weave-mark">
+  <line class="w" x1="5" y1="0" x2="5" y2="30"/><line class="w" x1="17" y1="0" x2="17" y2="30"/>
+  <line class="w" x1="29" y1="0" x2="29" y2="30"/><line class="w" x1="41" y1="0" x2="41" y2="30"/>
+  <line class="w" x1="53" y1="0" x2="53" y2="30"/>
+  <rect class="b" x="1" y="4" width="8" height="8" rx="2.2" opacity=".85"/>
+  <rect class="b" x="25" y="4" width="8" height="8" rx="2.2" opacity=".55"/>
+  <rect class="b" x="49" y="4" width="8" height="8" rx="2.2" opacity=".85"/>
+  <rect class="b" x="13" y="18" width="8" height="8" rx="2.2" opacity=".55"/>
+  <rect class="b" x="37" y="18" width="8" height="8" rx="2.2" opacity=".85"/>
+</g></defs></svg>
+
+<nav>
+  <div class="wrap">
+    <span class="brand"><i></i>Loom</span>
+    <a class="hide-s" href="#manifesto">Manifesto</a>
+    <a class="hide-s" href="#verbs">CLI</a>
+    <a class="hide-s" href="#faq">FAQ</a>
+    <span class="sp"></span>
+    <a href="https://github.com/loombeading/loom">GitHub</a>
+  </div>
+</nav>
+
+<div class="wrap">
+  <div class="news">
+    <div class="panel"><div class="cap"><span>read the cloth</span><span>id-8a5</span></div>
+      <b>朝、布が伸びている。</b><p>夜のあいだ、手は替わりつづけていた。織られた段は、あとから一段ずつ読み返せる。<a href="#read">Read more</a></p></div>
+    <div class="panel"><div class="cap"><span>no network · one file</span></div>
+      <b>go install で、いますぐ</b><p>SQLite ひとつで工房が立つ。<a href="#start">Get started</a></p></div>
+  </div>
+</div>
+
+<header class="hero">
+  <canvas id="halftone" aria-hidden="true"></canvas>
+  <div class="wrap copy">
+    <div class="b64" aria-hidden="true">TG9vbTogdGhlIGNsb3RoIHJlbWVtYmVycyBldmVyeSByb3cu</div>
+    <div class="leader"><span>Introducing lm</span><span class="dots"></span><span>Work beyond chat</span></div>
+    <h1>Beads, not strings.<small>糸ではなく、粒で残す。</small></h1>
+    <p class="sub">Loom はエージェントと人が同じ仕事を織るための依存グラフ。会話という一本の糸に流さず、段ごとに粒として打ち込む。いつ・誰が・なぜが、あとから一段ずつ読み返せる。</p>
+    <div class="ctas">
+      <a class="cta primary" href="#start">Install lm</a>
+      <a class="cta" href="https://github.com/loombeading/loom">GitHub</a>
+    </div>
+  </div>
+</header>
+
+<div class="glyph" aria-hidden="true"><svg viewBox="0 0 58 30"><use href="#weave-mark"/></svg></div>
+
+<div class="wrap">
+  <div class="desk">
+    <div class="panel tree"><div class="cap"><span>lineage</span><span>id-8a5.1</span></div>
+<pre class="txt tree-n"><span class="dim">&lt;人が覚える&gt;</span>
+<b>TODO.md</b>
+<span class="dim">│</span>  人が読む・チェックで進む
+└─ <b>Issue tracker</b>
+    <span class="dim">│</span>  人が読む・状態で進む
+    ├─ <b>Kanban</b>
+    │    人が読む・列を動かして進む
+    ├─ <b>Agents in chat</b>
+    │    会話に流れる・担い手が残らない
+    └─ <span class="me">Loom</span>
+         <span class="dim">│</span>  エージェントが読む・依存で進む
+         ├─ <b>Bead</b>
+         │    状態と来歴を持つ
+         ├─ <b>claim</b>
+         │    担い手はひとり
+         └─ <b>Gate</b>
+              判断は人に返す</pre>
+<pre class="txt tree-w"><span class="dim">&lt;人が覚える&gt;</span>
+<b>TODO.md</b> ─── 人が読む・チェックで進む
+ └─ <b>Issue tracker</b> ─── 人が読む・状態で進む
+     ├─ <b>Kanban</b> ─── 人が読む・列を動かして進む
+     ├─ <b>Agents in chat</b> ─── 会話に流れる・担い手が残らない
+     └─ <span class="me">Loom</span> ─── エージェントが読む・依存で進む
+          ├─ <b>Bead</b> ─── 状態と来歴を持つ
+          ├─ <b>claim</b> ─── 担い手はひとり
+          └─ <b>Gate</b> ─── 判断は人に返す</pre>
+    </div>
+    <div class="panel"><div class="cap"><span>the same night</span><span>id-8a5.2</span></div>
+<pre class="txt">$ <b>lm show id-8a5</b>
+<span class="dim">## History</span>
+<span class="ev" data-ev="0">23:14 you      released</span>
+<span class="ev" data-ev="1">01:02 agent-2  claimed</span>
+<span class="ev" data-ev="2">02:40 agent-2  blocked ← id-8a5.3</span>
+<span class="ev" data-ev="3">03:58 you      <span class="me">gate resolved</span>
+               <span class="dim">"藍で通す"</span></span>
+<span class="ev" data-ev="4">05:31 agent-7  closed
+               <span class="dim">"確認済み"</span></span></pre>
+    </div>
+    <div class="panel"><div class="cap"><span>weave</span><span>id-8a5.3</span></div>
+      <canvas id="weave" aria-label="格子に Bead が一段ずつ打ち込まれていく。茜色の段は Gate、空いた段は塞がっていた段。"></canvas>    </div>
+  </div>
+</div>
+
+<section id="manifesto">
+  <div class="wrap">
+    <span class="label">manifesto</span>
+    <h2>会話の外に、仕事を置く。</h2>
+    <div class="two">
+      <div class="panel"><div class="cap"><span>not chat</span></div>
+        <p>エージェントへの依頼は会話に流れ、会話は消える。誰が何を持っているか、どこで止まっているか、なぜそう決めたか。どれも文脈の中にだけあり、セッションが閉じた瞬間に孤児になる。</p></div>
+      <div class="panel"><div class="cap"><span>a dependency graph</span></div>
+        <p>Loom は仕事を Bead（粒）として格子に打ち込む。経糸（依存）が段の順序を決め、閉じると締まり、締まると次が開く。止まった段は Gate として人を呼び、決まった事実だけを残す。</p></div>
+    </div>
+    <div class="three">
+      <div class="panel quiet"><h3>Beads, not strings</h3><p>Bead は状態を持って残る。エージェントがそのまま読んで動ける。</p></div>
+      <div class="panel quiet"><h3>One shuttle</h3><p>claim は排他だ。何人来ても、同じ段を通すのはひとりだけ。</p></div>
+      <div class="panel quiet"><h3>More like a ledger</h3><p>来歴は消えない。閉じた Bead も、理由ごと残る。</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="read">
+  <div class="wrap">
+    <span class="label">read the cloth</span>
+    <h2>布を読む。</h2>
+    <div class="reading">
+    <div class="cloth">
+      <canvas id="cloth" aria-label="ビーズ織りの格子。経糸に沿って Bead が一段ずつ並び、上ほど新しい。途中に茜色の一段と、Bead の無い一段がある。下へ行くほど色が褪せている。"></canvas>
+    </div>
+    <div class="read">
+      <p>昨日の夜、手を離したところより、手のひらひとつ分ほど先へ。</p>
+      <p>いちばん上の段は、まだ新しい。<ruby>筬<rt>おさ</rt></ruby>の跡が立っている。ついさっきまで、ここに手があった。</p>
+
+      <div class="step">指で、下へたどる。<span>id-8a5.4</span></div>
+      <p>数段下がったところで、色が変わっている。</p>
+      <p>手を止めた跡だ。自分では決めず、呼んだ。返事が来るまで、この段は空いたままだった。</p>
+      <p>待っていた時間の長さは、布に出ない。出るのは、決まったという事実だけだ。</p>
+      <p>そのすぐ下に、粒の揃った数段がある。</p>
+      <p>ひとりの手だ。<ruby>杼<rt>ひ</rt></ruby>はひとつしかないから、こうなる。何人来ていても、布のうえを、いつも一本しか通っていない。</p>
+      <p>ここに、粒の無い一段がある。</p>
+      <p>上の段が塞がっていた。だから通せなかった。</p>
+      <p>「待った」という段は無い。無いことが、待ったということだ。</p>
+
+      <div class="step">もっと下へ。<span>id-8a5.5</span></div>
+      <p>古い粒は、色が褪せている。何をした段なのかは、もう読み取れない。</p>
+      <p>褪せただけで、抜けてはいない。数えれば、まだそこにある。</p>
+
+      <div class="step">いちばん下。<span>id-8a5.6</span></div>
+      <p>あなたが最後に打ち込んだ段。</p>
+      <p>ここから上が、昨日の夜だ。</p>
+    </div>
+    </div>
+    <canvas id="spread" aria-hidden="true"></canvas>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="b64" aria-hidden="true">bG0gcmVhZHkgLS1jbGFpbQ==</div>
+    <p class="big" style="margin-top:14px"><span class="d d0">0&nbsp;</span><span class="wn">network,</span></p>
+    <p class="big"><span class="d d1">1&nbsp;</span><span class="wf">file.</span></p>
+    <p class="foot">*実行時に外部へ接続しない・SQLite のローカルファイルひとつ <a href="#faq">(proof)</a></p>
+
+    <span class="label" style="margin-top:40px">double claim</span>
+    <div class="two cmp">
+      <div class="panel"><div class="cap"><span>Loom</span></div>
+<pre class="txt">$ <b>lm ready --claim</b>
+Claimed: id-8a5
+- id-8a5 [bug/in_progress/P1]
+  認証まわりのバグ修正  @agent-2
+
+$ <b>lm ready --claim</b>   <span class="dim"># agent-7</span>
+Claimed: id-8a6
+- id-8a6 [task/in_progress/P2]
+  ログ出力の整理  @agent-7</pre>
+        <div class="meta"><span class="ok">■</span> 二重着手は起きない。同じ段を取れるのはひとりだけ</div>
+      </div>
+      <div class="panel quiet"><div class="cap"><span>TODO.md</span></div>
+<pre class="txt"><span class="dim">## 今日やること
+- [ ] 認証まわりのバグ修正
+      ← agent-2 が着手
+      ← agent-7 も着手
+- [ ] ログ出力の整理</span></pre>
+        <div class="meta"><span class="ng">■</span> 二重着手が起きる。同じ項目を 2 人が取る</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<section id="verbs">
+  <div class="wrap">
+    <span class="label">vocabulary</span>
+    <h2>はじめから、織りの動詞だった。</h2>
+    <div class="verbs">
+      <div><div class="cmd">lm ready</div><div class="gl">いま開口している段を見る。</div></div>
+      <div><div class="cmd">lm ready --claim</div><div class="gl">杼を取る。杼はひとつしかない。</div></div>
+      <div><div class="cmd">lm blocked</div><div class="gl">上の段が塞がっていれば、通せない。</div></div>
+      <div><div class="cmd">lm dep add</div><div class="gl">経糸を張る。段の順序が決まる。</div></div>
+      <div class="gate"><div class="cmd">lm gate create</div><div class="gl">自分では決めず、手を止めて、人を呼ぶ。</div></div>
+      <div><div class="cmd">lm close</div><div class="gl">筬で打ち込む。締まると、次が開く。</div></div>
+      <div><div class="cmd">lm show</div><div class="gl">一段の来歴を読み返す。いつ・誰が・なぜ。</div></div>
+    </div>
+    <p class="coda">ready・blocked・close・claim は、はじめから織りの動詞だった。閉じることが締めることであり、締まると次が開く。それは比喩ではなく、依存関係の実装そのものである。</p>
+  </div>
+</section>
+
+<div class="glyph" aria-hidden="true"><svg viewBox="0 0 58 30"><use href="#weave-mark"/></svg></div>
+
+<section id="faq">
+  <div class="wrap">
+    <span class="label">faq</span>
+    <h2>よくある問い。</h2>
+    <details open><summary>Loom とは？ lm とは？</summary><p>Loom はエージェントと人が同じ仕事を進めるための依存グラフで、lm はその CLI だ。仕事を Bead として登録し、依存と Gate から「いま着手できるもの」を返す。</p></details>
+    <details><summary>ただの Issue トラッカーでは？</summary><p>読み手がエージェントである点が違う。出力は Markdown、機械向けには <span class="mono">lm export</span> の JSONL。実行中に入力を待たないので、エージェントが固まらない。</p></details>
+    <details><summary>ネットワークに出ないのは本当？</summary><p>実行時に外部へ接続しない。状態は SQLite のローカルファイルひとつで、持ち運べて、消せる。</p></details>
+    <details><summary>二人が同じものに着手したら？</summary><p><span class="mono">lm ready --claim</span> は排他だ。杼はひとつしかないので、同じ段を二人が通すことはない。</p></details>
+    <details><summary>人の判断が要るときは？</summary><p><span class="mono">lm gate create</span> で段を止め、人を呼ぶ。待った時間ではなく、決まった理由が来歴に残る。</p></details>
+  </div>
+</section>
+
+<section id="start">
+  <div class="wrap">
+    <span class="label">get started</span>
+    <p class="read" style="margin:0 0 .4em;color:var(--dim)">読み終えて、座る。<br>杼を取る。</p>
+    <h2>次の段を通す。</h2>
+    <div class="panel" style="max-width:46rem">
+<pre class="txt term"><span class="ln">$ <b>go install github.com/loombeading/loom/cmd/lm@latest</b></span><span class="ln">$ <b>lm init</b></span><span class="ln">$ <b>lm create --title "認証まわりのバグ修正" --type bug --priority 1</b></span><span class="ln">- Created: id-8a5 [bug/open/P1] 認証まわりのバグ修正</span><span class="ln">$ <b>lm ready --claim</b></span><span class="ln">Claimed: id-8a5</span></pre>
+    </div>
+    <p class="foot" style="max-width:40em">署名付きバイナリは GitHub Release から。SHA-256 の照合と Sigstore の attestation を通してから配置する経路を用意している。</p>
+    <div class="b64" aria-hidden="true" style="margin-top:28px">NXB5ZDQ0Q0I1YmlENDRHTTVMeTQ0NEd6NDRHbTQ0R0U0NEtMNDRDQw==</div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <span>Loom / <span class="mono">lm</span> · Apache-2.0</span>
+    <a href="https://github.com/loombeading/loom">github.com/loombeading/loom</a>
+  </div>
+</footer>
+
+<script>
+(function(){
+  var reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  function css(n){ return getComputedStyle(document.documentElement).getPropertyValue(n).trim(); }
+  var C = {};
+  function readColors(){ C={ bead:css('--bead'), thread:css('--thread'), accent:css('--accent') }; }
+  function hash(a,b){ var h=(a*73856093)^(b*19349663)^(a*b*83492791); h=(h^(h>>>13))>>>0; h=Math.imul(h,1274126177)>>>0; return (h%10000)/10000; }
+
+  /* 網点の球体（格子の上に粒を落とす） */
+  var hc=document.getElementById('halftone'), hx=hc.getContext('2d');
+  /* hero の文字の下には粒を落とさない。行ごとの矩形を毎フレーム測るので、幅が変わって折り返しが動いても追従する */
+  var PAD=6, FEATHER=18;
+  function textHoles(){
+    var cr=hc.getBoundingClientRect(), holes=[];
+    function add(q){ if(q.width<1||q.height<1) return;
+      holes.push({x0:q.left-cr.left, y0:q.top-cr.top, x1:q.right-cr.left, y1:q.bottom-cr.top}); }
+    /* 要素ごとに測ると block 要素の枠の幅まで抜けるので、文字（テキストノード）だけを測る */
+    document.querySelectorAll('.hero .b64, .hero .leader, .hero h1, .hero .sub').forEach(function(el){
+      var tw=document.createTreeWalker(el, NodeFilter.SHOW_TEXT), n, r=document.createRange();
+      while((n=tw.nextNode())){
+        if(!n.nodeValue.trim()) continue;
+        r.selectNodeContents(n);
+        var rs=r.getClientRects(); for(var i=0;i<rs.length;i++) add(rs[i]);
+      }
+    });
+    document.querySelectorAll('.hero .cta').forEach(function(el){ add(el.getBoundingClientRect()); });
+    return holes;
+  }
+  function holeFade(holes,px,py){
+    var d=Infinity;
+    for(var i=0;i<holes.length;i++){ var H=holes[i];
+      var dx=Math.max(H.x0-px,0,px-H.x1), dy=Math.max(H.y0-py,0,py-H.y1), e=Math.hypot(dx,dy);
+      if(e<d) d=e; }
+    return d<PAD ? 0 : d<PAD+FEATHER ? (d-PAD)/FEATHER : 1;
+  }
+  function halftone(t){
+    var w=hc.clientWidth, h=hc.clientHeight, dpr=window.devicePixelRatio||1, holes=textHoles();
+    if(hc.width!==Math.round(w*dpr)||hc.height!==Math.round(h*dpr)){ hc.width=Math.round(w*dpr); hc.height=Math.round(h*dpr); }
+    hx.setTransform(dpr,0,0,dpr,0,0); hx.clearRect(0,0,w,h);
+    var G=5, phase=t/9000;
+    var spheres = w<700
+      ? [{x:w*.72,y:h*.30,r:Math.min(w,h)*.30}]
+      : [{x:w*.84,y:h*.52,r:h*.36},{x:w*.05,y:h*.12,r:h*.15},{x:w*.02,y:h*1.0,r:h*.14}];
+    hx.fillStyle=C.bead; hx.globalAlpha=.85;
+    for(var s=0;s<spheres.length;s++){
+      var S=spheres[s], R=S.r*(1+.02*Math.sin(phase*2+s)), halo=R*1.45;
+      var cx=S.x+Math.cos(phase+s)*6, cy=S.y+Math.sin(phase+s)*6;
+      var x0=Math.max(0,Math.floor((cx-halo)/G)), x1=Math.ceil((cx+halo)/G);
+      var y0=Math.max(0,Math.floor((cy-halo)/G)), y1=Math.ceil((cy+halo)/G);
+      for(var gx=x0;gx<=x1;gx++) for(var gy=y0;gy<=y1;gy++){
+        var px=gx*G, py=gy*G, d=Math.hypot(px-cx,py-cy), v=hash(gx+s*997,gy), p;
+        if(d<R){ var k=d/R; p=.78-.55*k*k + .12*Math.sin((px-py)/9); }
+        else if(d<halo){ p=.035*(1-(d-R)/(halo-R)); }
+        else continue;
+        if(v<p*holeFade(holes,px,py)) hx.fillRect(px-1,py-1,2,2);
+      }
+    }
+    hx.globalAlpha=1;
+  }
+
+  /* 粒が一段ずつ打ち込まれる */
+  var wc=document.getElementById('weave'), wx=wc.getContext('2d'), start=performance.now();
+  var evs=reduce ? null : [].slice.call(document.querySelectorAll('pre.txt .ev')), lastEv=-1;  /* 動きを止める設定では強調しない */
+  function weave(t){
+    var w=wc.clientWidth, h=wc.clientHeight, dpr=window.devicePixelRatio||1;
+    if(wc.width!==Math.round(w*dpr)||wc.height!==Math.round(h*dpr)){ wc.width=Math.round(w*dpr); wc.height=Math.round(h*dpr); }
+    wx.setTransform(dpr,0,0,dpr,0,0); wx.clearRect(0,0,w,h);
+    /* 布の図（#cloth）と同じ粒の大きさ・経糸の間隔。経糸の本数はパネルの幅から決め、横いっぱいに織る */
+    var step=108/7.6, sz=Math.max(5,step*.66), Cn=Math.max(7,Math.floor(w/step)), left=(w-(Cn-1)*step)/2, rows=Math.floor(h/step);
+    /* 段ごとの出来事（the same night の History と同じ夜）。0 released・1 claimed・2 blocked・3 gate resolved・4 closed */
+    var plan=[0,0,0,1,1,1,1,2,3]; while(plan.length<rows) plan.push(4);
+    var done=Math.floor(((t-start)/1200))%(rows+4);        /* 一段 1.2 秒。織り終えたら 4 段分おいて最初から */
+    var cur=done>=1&&done<=rows ? plan[done-1] : (done>rows ? 4 : 0);
+    if(evs && cur!==lastEv){ evs.forEach(function(e){ e.classList.toggle('on', +e.dataset.ev===cur); }); lastEv=cur; }
+    wx.strokeStyle=tint(C.thread,.55); wx.lineWidth=1.1;
+    for(var c=0;c<Cn;c++){ var x=left+c*step; wx.beginPath(); wx.moveTo(x,0); wx.lineTo(x,h); wx.stroke(); }
+    for(var r=0;r<Math.min(done,rows);r++){
+      var y=step*(r+.5), ev=plan[r];                         /* 上から下へ打ち込む */
+      if(ev===2) continue;                                 /* blocked: 通らなかった段 */
+      for(c=0;c<Cn;c++){
+        var v=cell(c,r), a=.16+v*.72;
+        if(ev===0) a=a*.55;                                /* 前の晩までの段は少し褪せている */
+        if(ev===1) a=.62+v*.12;                            /* ひとりの手: 粒が揃う */
+        if(r===done-1) a=Math.min(1,a+.18);                /* いま打ち込んだ段は立っている */
+        wx.fillStyle=tint(ev===3?C.accent:C.bead, ev===3?Math.max(.55,a):a);
+        rrOn(wx,left+c*step-sz/2,y-sz/2,sz,sz,Math.max(1.2,sz*.28)); wx.fill();
+      }
+    }
+  }
+
+
+
+  /* 布の図（文言版から移植）。図案は決定的: 毎回同じでなければ「記録」に見えない */
+  var cv=document.getElementById('cloth'), rcol=document.querySelector('#read .read'), cx=cv.getContext('2d');
+  function tint(c,a){ if(!/^#[0-9a-f]{6}$/i.test(c)) return c;
+    return c+('0'+Math.round(a*255).toString(16)).slice(-2); }
+  function cell(c,r){ var h=(c*73856093)^(r*19349663); h=(h^(h>>>13))>>>0; return (h%1000)/1000; }
+  function rrOn(k,x,y,w,h,r){ k.beginPath(); k.moveTo(x+r,y); k.arcTo(x+w,y,x+w,y+h,r); k.arcTo(x+w,y+h,x,y+h,r);
+    k.arcTo(x,y+h,x,y,r); k.arcTo(x,y,x+w,y,r); k.closePath(); }
+  function rr(x,y,w,h,r){ rrOn(cx,x,y,w,h,r); }
+  var geo={};  /* 布の寸法。#spread が同じ経糸・同じ段の刻みで続けるために使う */
+  function cloth(){
+    var w=cv.parentElement.clientWidth, h=Math.max(320,Math.min(rcol.offsetHeight,Math.round(innerHeight*.94))), dpr=devicePixelRatio||1;
+    cv.width=Math.round(w*dpr); cv.height=Math.round(h*dpr); cv.style.height=h+'px';
+    cx.setTransform(dpr,0,0,dpr,0,0); cx.clearRect(0,0,w,h);
+    var cols=w<60?4:7, STEP=w/(cols+.6), SIZE=Math.max(5,STEP*.66), left=(w-(cols-1)*STEP)/2, rows=Math.floor(h/STEP);
+    /* 段は下端に揃える（余りは上端に回す）。最下段が下端ぴったりで終わり、#spread が次の段から切れ目なく続ける */
+    var resid=h-rows*STEP;
+    geo={cols:cols, STEP:STEP, SIZE:SIZE, left:left, w:w};
+    for(var i=0;i<cols;i++){ var x=left+i*STEP; cx.strokeStyle=tint(C.thread,.55); cx.lineWidth=1.1;
+      cx.beginPath(); cx.moveTo(x,0); cx.lineTo(x,h); cx.stroke(); }
+    var fAkane=.15, fVoid=.45, fFade=.58, fMine=.955;
+    for(var r=0;r<rows;r++){
+      var f=r/rows, y=resid+r*STEP+STEP/2;
+      if(Math.abs(f-fVoid)<.012) continue;                       /* 通らなかった段（blocked） */
+      var isAkane=Math.abs(f-fAkane)<.010, isMine=Math.abs(f-fMine)<.009;
+      var fade=f<fFade?0:Math.min(.82,(f-fFade)/(1-fFade)*.95);  /* 褪せても消えない */
+      for(var c=0;c<cols;c++){
+        var x2=left+c*STEP, a=.16+cell(c,r)*.72;
+        if(f<.05) a=Math.min(1,a+.18);                             /* 最上段は立っている */
+        a=a*(1-fade)+.07*fade;
+        cx.fillStyle=tint(isAkane?C.accent:C.bead, isAkane?Math.max(.55,a):a);
+        rr(x2-SIZE/2,y-SIZE/2,SIZE,SIZE,Math.max(1.2,SIZE*.28)); cx.fill();
+        if(isMine){ cx.strokeStyle=tint(C.bead,.85); cx.lineWidth=1;
+          rr(x2-SIZE/2-1.5,y-SIZE/2-1.5,SIZE+3,SIZE+3,Math.max(1.5,SIZE*.3)); cx.stroke(); }
+      }
+    }
+  }
+  /* 布の下端の続き: 同じ経糸の位置から Bead が小さく疎になり、網点（2px・5px 格子）へほどけて右下へ広がる */
+  var sp=document.getElementById('spread'), sx=sp.getContext('2d');
+  /* 毎フレーム描き直す。動きは hero の網点と同じ: 密度の場が 9 秒周期でゆっくり漂い、境目の点が現れたり消えたりする */
+  var sw=0, sh=0;
+  function spread(){
+    var w=sp.clientWidth, h=sp.clientHeight, dpr=devicePixelRatio||1;
+    sp.width=Math.round(w*dpr); sp.height=Math.round(h*dpr); sw=w; sh=h;
+    paintSpread(reduce?0:performance.now());
+  }
+  function paintSpread(tm){
+    var w=sw, h=sh, dpr=devicePixelRatio||1;
+    var cols=geo.cols, STEP=geo.STEP, SIZE=geo.SIZE, left=geo.left, cw=geo.w, G=5;
+    var BAND=h*.45;        /* この深さまでに、粒はすべて網点へ崩れる */
+    var gx0=left%G;        /* 網点の格子は経糸の位置を基準にする */
+    var phase=tm/9000;     /* hero の網点と同じ周期 */
+    var taken={};          /* 同じ格子点に点を二重に置かない */
+    sx.setTransform(dpr,0,0,dpr,0,0); sx.clearRect(0,0,w,h);
+    function dot(px,py,a){ var k=px+','+py; if(taken[k]) return; taken[k]=1;
+      sx.globalAlpha=a; sx.fillRect(px-1,py-1,2,2); }
+
+    /* 経糸は布から切れ目なく続き、崩れる帯の中で消える */
+    for(var i=0;i<cols;i++){ var x=left+i*STEP, g=sx.createLinearGradient(0,0,0,BAND);
+      g.addColorStop(0,tint(C.thread,.55)); g.addColorStop(1,tint(C.thread,0));
+      sx.strokeStyle=g; sx.lineWidth=1.1; sx.beginPath(); sx.moveTo(x,0); sx.lineTo(x,BAND); sx.stroke(); }
+
+    /* 粒: 布と同じ段の刻みで続ける。1 粒の中で、粒が縮むのと同じだけ周りに点が増える。崩れ具合も場と一緒にゆっくり呼吸する */
+    for(var r=0;;r++){
+      var y=r*STEP+STEP/2; if(y>BAND) break;
+      var t=Math.max(0,y)/BAND;
+      for(var c=0;c<cols;c++){
+        var x2=left+c*STEP, v=cell(c+11,r+97), a=(.1+v*.25)*(1-t*.4);
+        var u=Math.min(1,Math.max(0,t*1.7-v*.7+.08*Math.sin(phase*2+c*.7+r*.4)));
+        var s=SIZE*(1-u);
+        if(s>2.5){ sx.globalAlpha=1; sx.fillStyle=tint(C.bead,a);
+          rrOn(sx,x2-s/2,y-s/2,s,s,Math.max(1,s*.28)); sx.fill(); }
+        sx.fillStyle=C.bead;
+        for(var qx=Math.ceil((x2-SIZE/2-gx0)/G)*G+gx0; qx<=x2+SIZE/2; qx+=G)
+          for(var qy=Math.ceil((y-SIZE/2)/G)*G; qy<=y+SIZE/2; qy+=G){
+            if(Math.abs(qx-x2)<s/2+1 && Math.abs(qy-y)<s/2+1) continue;   /* まだ粒が覆っている */
+            if(hash(qx+7,qy+3)<u*.6) dot(qx,qy,Math.min(.85,a*1.3+.05));
+          }
+      }
+    }
+
+    /* 網点: 布の列から、下へ行くほど右へ裾が広がる。起点と裾の広さが漂い、境目の点がざわめく */
+    sx.fillStyle=C.bead;
+    var ox=left+(cols-1)*STEP/2+Math.cos(phase)*6, breathe=1+.04*Math.sin(phase*2);
+    for(var gx=0;gx*G+gx0<w;gx++) for(var gy=0;gy*G<h;gy++){
+      var px=gx*G+gx0, py=gy*G+Math.sin(phase)*3, t2=Math.max(0,py)/h;
+      var reach=(cw*.55+t2*t2*w*.9)*breathe, dx=Math.max(0,Math.abs(px-ox)-cw*.35);
+      var env=Math.exp(-(dx*dx)/(reach*reach)*2.2)*(t2>.7?(1-t2)/.3:1);
+      var p=((.03+.41*t2*t2)+.06*t2*Math.sin((px-py)/9))*env;
+      if(hash(gx+401,gy+17)<p) dot(px,gy*G,Math.min(.85,.25+t2*1.1));
+    }
+    sx.globalAlpha=1;
+  }
+  var ct; function schedCloth(){ clearTimeout(ct); ct=setTimeout(function(){ cloth(); spread(); },120); }
+  addEventListener('resize',schedCloth);
+  if(window.ResizeObserver) new ResizeObserver(schedCloth).observe(rcol);
+
+  readColors();
+  function drawCloth(){ cloth(); spread(); }
+  if(document.fonts&&document.fonts.ready) document.fonts.ready.then(drawCloth); else drawCloth();
+  function frame(t){ halftone(t); weave(t); if(sw) paintSpread(t); if(!reduce) requestAnimationFrame(frame); }
+  function still(){ halftone(0); start=-1e9; weave(0); }
+  if(reduce) still(); else requestAnimationFrame(frame);
+  addEventListener('resize',function(){ if(reduce) still(); });
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change',function(){ readColors(); cloth(); spread(); if(reduce) still(); });
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,16 @@
+# Loom
+
+> Loom（コマンドは `lm`）は AI コーディングエージェント向けのタスク・記憶トラッカー。Go 製シングルバイナリ、SQLite にローカル保存、オフライン動作、出力は Markdown のみ、全コマンド非対話。
+
+## 使い方
+
+- [README.md](https://github.com/loombeading/loom/blob/main/README.md): インストールと 5 分で使う手順
+- [docs/tutorial.md](https://github.com/loombeading/loom/blob/main/docs/tutorial.md): よくある使い方
+- [skills/loom/SKILL.md](https://github.com/loombeading/loom/blob/main/skills/loom/SKILL.md): AI コーディングエージェントの運用ルール
+
+## その他
+
+- [Releases](https://github.com/loombeading/loom/releases): 変更履歴
+- [CONTRIBUTING.md](https://github.com/loombeading/loom/blob/main/CONTRIBUTING.md): 不具合の報告の送り方
+- [SECURITY.md](https://github.com/loombeading/loom/blob/main/SECURITY.md): 脆弱性の報告先
+- [LICENSE](https://github.com/loombeading/loom/blob/main/LICENSE): Apache License 2.0
